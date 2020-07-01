@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "run": "npm run build && cd playground/ && npx webpack && cd ..",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
