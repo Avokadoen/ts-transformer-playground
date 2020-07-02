@@ -1,94 +1,66 @@
-import { 
-    CallExpression, 
-    TypeChecker,
-    StringLiteral,
-    Node, 
-    ImportDeclaration, 
-    TransformerFactory,
-    SourceFile, 
-    TransformationContext,
-    Program,
-    visitEachChild,
-    visitNode,
-    isImportDeclaration,
-    isCallExpression,
-    isJSDocSignature,
-    isIdentifier,
-    isTypeReferenceNode,
-    isFunctionTypeNode,
-    isArrayLiteralExpression,
-    createArrayLiteral,
-    createLiteral
-} from 'typescript';
-import {join, resolve, dirname} from 'path';
 
+import ts, { CallExpression, isIdentifier, TypeNode, isFunctionTypeNode, isTypeReferenceNode, createLiteral } from 'typescript';
+import path from 'path';
+import { type } from 'os';
 
-export default function transformer(program: Program): TransformerFactory<SourceFile> {
-    return (context: TransformationContext) => (file: SourceFile) => {
-        const visitor = (node: Node): Node => {
-            const result = injectReturn(node, program);
-            if (!result) {
-                return node;
-            }
+// SOURCE: https://github.com/kimamula/ts-transformer-keys
 
-            if (!isArrayLiteralExpression(result)) {
-                visitEachChild(node, visitor, context);
-            }
-
-            return result;
-        };
-      
-        return visitNode(file, visitor);
-    };
+export default function transformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
+    return (context: ts.TransformationContext) => (file: ts.SourceFile) => visitNodeAndChildren(file, program, context);
 }
 
-function injectReturn(node: Node, program: Program): Node | undefined {
+function visitNodeAndChildren(node: ts.SourceFile, program: ts.Program, context: ts.TransformationContext): ts.SourceFile;
+function visitNodeAndChildren(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node | undefined;
+function visitNodeAndChildren(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node | undefined {
+    return ts.visitEachChild(visitNode(node, program), childNode => visitNodeAndChildren(childNode, program, context), context);
+}
+
+function visitNode(node: ts.SourceFile, program: ts.Program): ts.SourceFile;
+function visitNode(node: ts.Node, program: ts.Program): ts.Node | undefined;
+function visitNode(node: ts.Node, program: ts.Program): ts.Node | undefined {
+    const typeChecker = program.getTypeChecker();
     if (isFnParameterTypesImportExpression(node)) {
         return;
     }
-    
-    const typeChecker = program.getTypeChecker();
     if (!isFnParameterTypesCallExpression(node, typeChecker)) {
         return node;
     }
 
-    const cCount = node.getChildCount();
-    if (cCount <= 1) {
-        return node;
+    if (!node.typeArguments) {
+        return ts.createArrayLiteral([]);
     }
 
-    const args = node?.typeArguments;
-    if (!args) {
-        return createArrayLiteral([]);
-    }
+    const typeArray = extractIdentifierTypeString(node.typeArguments[0]);
+    return ts.createArrayLiteral(typeArray.map(paraType => ts.createLiteral(paraType)));
+}
 
-    const fnType = args[0];
-    if (!isFunctionTypeNode(fnType)) {
-        return createArrayLiteral([]);
+function extractIdentifierTypeString(node: TypeNode): string[] {
+    const typeArray: string[] = [];
+    if (!isFunctionTypeNode(node)) {
+        return typeArray;
     }
-
-    return createArrayLiteral(fnType.parameters.map(p => {
+    for (const p of node.parameters) {
         const t = p.type;
         if (t && isTypeReferenceNode(t)) {
             if (isIdentifier(t.typeName)) {
-                console.log(t.typeName.getFullText());
-                return createLiteral(t.typeName.getFullText());
+                typeArray.push(t.typeName.escapedText as string)
             }
         }
-        return createLiteral('');
-    }));
-} 
+    }
 
-const indexJs = join(__dirname, 'index.js');
-function isFnParameterTypesImportExpression(node: Node): node is ImportDeclaration {
-    if (!isImportDeclaration(node)) {
+    return typeArray;
+}
+
+const indexJs = path.join(__dirname, 'index.js');
+function isFnParameterTypesImportExpression(node: ts.Node): node is ts.ImportDeclaration {
+    if (!ts.isImportDeclaration(node)) {
         return false;
     }
-    const module = (node.moduleSpecifier as StringLiteral).text;
+    const module = (node.moduleSpecifier as ts.StringLiteral).text;
     try {
         return indexJs === (
         module.startsWith('.')
-            ? require.resolve(resolve(dirname(node.getSourceFile().fileName), module))
+            ? require.resolve(path.resolve(path.dirname(node.getSourceFile().fileName), module))
             : require.resolve(module)
         );
     } catch(e) {
@@ -96,9 +68,9 @@ function isFnParameterTypesImportExpression(node: Node): node is ImportDeclarati
     }
 }
 
-const indexTs = join(__dirname, 'index.d.ts');
-function isFnParameterTypesCallExpression(node: Node, typeChecker: TypeChecker): node is CallExpression {
-    if (!isCallExpression(node)) {
+const indexTs = path.join(__dirname, 'index.d.ts');
+function isFnParameterTypesCallExpression(node: ts.Node, typeChecker: ts.TypeChecker): node is ts.CallExpression {
+    if (!ts.isCallExpression(node)) {
         return false;
     }
     const signature = typeChecker.getResolvedSignature(node);
@@ -106,8 +78,8 @@ function isFnParameterTypesCallExpression(node: Node, typeChecker: TypeChecker):
         return false;
     }
     const { declaration } = signature;
-    return !!declaration 
-        && !isJSDocSignature(declaration)
+    return !!declaration
+        && !ts.isJSDocSignature(declaration)
         && require.resolve(declaration.getSourceFile().fileName) === indexTs
         && declaration.name?.getText() === 'fnParameterTypes';
 }
