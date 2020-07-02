@@ -1,1 +1,1 @@
-export function fnParameterTypes<T extends (...args: any[]) => any>(fn: T): string[]; 
+export function fnParameterTypes<T extends (...args: any[]) => void>(fn: T): string[]; 

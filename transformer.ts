@@ -13,7 +13,12 @@ import {
     isImportDeclaration,
     isCallExpression,
     isJSDocSignature,
-    SyntaxKind
+    isIdentifier,
+    isTypeReferenceNode,
+    isFunctionTypeNode,
+    isArrayLiteralExpression,
+    createArrayLiteral,
+    createLiteral
 } from 'typescript';
 import {join, resolve, dirname} from 'path';
 
@@ -21,53 +26,57 @@ import {join, resolve, dirname} from 'path';
 export default function transformer(program: Program): TransformerFactory<SourceFile> {
     return (context: TransformationContext) => (file: SourceFile) => {
         const visitor = (node: Node): Node => {
-            const found = retrieveSyntaxList(peekAtNode(node, program));
-            if (found) {
-                // console.log(node.kind, `\t# ts.SyntaxKind.${SyntaxKind[node.kind]}, pos: ${node}`);
-                found.getChildren().forEach((c: Node) => console.log(`${SyntaxKind[(c).kind]}`));
-                
-                return found;
+            const result = injectReturn(node, program);
+            if (!result) {
+                return node;
             }
 
-            return visitEachChild(node, visitor, context);
+            if (!isArrayLiteralExpression(result)) {
+                visitEachChild(node, visitor, context);
+            }
+
+            return result;
         };
       
         return visitNode(file, visitor);
     };
 }
 
-function retrieveSyntaxList(node?: Node): Node | undefined {
-    if (!node) {
-        return;
-    }
-
-    const children = node.getChildren();
-
-    for (const child of children) {
-        if (child.kind === SyntaxKind.SyntaxList) {
-            return child;
-        }
-    }
-
-    return;
-}
-
-function peekAtNode(node: Node, program: Program): Node | undefined {
+function injectReturn(node: Node, program: Program): Node | undefined {
     if (isFnParameterTypesImportExpression(node)) {
         return;
     }
     
     const typeChecker = program.getTypeChecker();
     if (!isFnParameterTypesCallExpression(node, typeChecker)) {
-        return;
+        return node;
     }
 
     const cCount = node.getChildCount();
     if (cCount <= 1) {
-        return;
+        return node;
     }
 
-    return node;
+    const args = node?.typeArguments;
+    if (!args) {
+        return createArrayLiteral([]);
+    }
+
+    const fnType = args[0];
+    if (!isFunctionTypeNode(fnType)) {
+        return createArrayLiteral([]);
+    }
+
+    return createArrayLiteral(fnType.parameters.map(p => {
+        const t = p.type;
+        if (t && isTypeReferenceNode(t)) {
+            if (isIdentifier(t.typeName)) {
+                console.log(t.typeName.getFullText());
+                return createLiteral(t.typeName.getFullText());
+            }
+        }
+        return createLiteral('');
+    }));
 } 
 
 const indexJs = join(__dirname, 'index.js');

@@ -2,15 +2,20 @@
   "name": "ts-fn-parameter-type",
   "version": "0.0.1",
   "description": "A transformer to retrieve function parameter types",
-  "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "run": "npm run build && cd playground/ && npx webpack && cd ..",
+    "test:run": "npm run build && cd playground/ && npx webpack && cd ..",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "Transformer",
     "Typescript"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "transformer.js",
+    "transformer.ts"
   ],
   "author": "Avokadoen",
   "license": "MIT",

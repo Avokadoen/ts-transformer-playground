@@ -16,5 +16,5 @@ function otherSystem(dt: number, c1: Comp1, c2: Comp2) {
     console.log('coolio2');
 }
 
-fnParameterTypes(mySystem);
-fnParameterTypes(otherSystem);
+console.log('return 1: ', fnParameterTypes(mySystem));
+console.log('return 2: ', fnParameterTypes<(dt: number, c1: Comp1, c2: Comp2) => void>(otherSystem));
