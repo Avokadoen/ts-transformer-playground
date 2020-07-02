@@ -27,5 +27,36 @@ console.log('return 2: ', fnParameterTypes(otherSystem));
 console.log('return 3: ', fnParameterTypes<(dt: number, otherC1: Comp1, otherC2: Comp2) => void>(otherSystem));
 ```
 
+# Use in your project: 
+This is a higly untested and experimental code base, but if you want to try this you can do the following: 
+
+### Webpack
+in you webpack.config.js:
+```js
+const parameterTypeNamesTransformer = require('ts-fn-parameter-type').default; // <--
+
+module.exports = ['ts-loader'].map(loader => ({
+   // ... omitted
+    module: {
+        rules: [
+            {
+                // ... omitted
+                options: {
+                    // make sure not to set `transpileOnly: true` here, otherwise it will not work
+                    getCustomTransformers: program => ({
+                        before: [
+                            parameterTypeNamesTransformer(program)
+                        ]
+                    })
+                }
+            },
+        ],
+    },
+}));
+```
+
+### Ttypescript
+// TODO explain how to use in ttypescript
+
 # Source
 Heavily based on [ts-transformer-keys](https://github.com/kimamula/ts-transformer-keys)
