@@ -1,5 +1,5 @@
 # Ts-fn-parameter-type
-use:
+### example:
 ```typescript
 interface Comp1 {
     someNumber: number;
@@ -17,14 +17,14 @@ function otherSystem(dt: number, otherC1: Comp1, otherC2: Comp2) {
     console.log('coolio2');
 }
 
-// return 1: Array [ "Comp1", "Comp2" ]
-console.log('return 1: ', fnParameterTypes(mySystem)); 
+// Array [ "Comp1", "Comp2" ]
+console.log(fnParameterTypes(mySystem)); 
 
-// return 2: Array [ "Comp1", "Comp2" ]
-console.log('return 2: ', fnParameterTypes(otherSystem));
+// Array [ "Comp1", "Comp2" ]
+console.log(fnParameterTypes(otherSystem));
 
-// return 3: Array [ "Comp1", "Comp2" ]
-console.log('return 3: ', fnParameterTypes<(dt: number, otherC1: Comp1, otherC2: Comp2) => void>(otherSystem));
+// Array [ "Comp1", "Comp2" ]
+console.log(fnParameterTypes<(dt: number, otherC1: Comp1, otherC2: Comp2) => void>(otherSystem));
 ```
 
 # Use in your project: 
@@ -33,7 +33,7 @@ This is a higly untested and experimental code base, but if you want to try this
 ### Webpack
 in you webpack.config.js:
 ```js
-const parameterTypeNamesTransformer = require('ts-fn-parameter-type').default; // <--
+const parameterTypeNamesTransformer = require('ts-fn-parameter-type/transformer').default; // <--
 
 module.exports = ['ts-loader'].map(loader => ({
    // ... omitted
@@ -56,7 +56,25 @@ module.exports = ['ts-loader'].map(loader => ({
 ```
 
 ### Ttypescript
-// TODO explain how to use in ttypescript
+install ttypescript
+``npm install -D ttypescript``
+
+set the transform as a plugin
+```json
+{
+    "compilerOptions": {
+        // ...
+        "plugins": [
+            { "transform": "ts-fn-parameter-type/transformer" },
+        ]
+    },
+    // ...
+}
+```
+
+use ttsc instead of tsc
+
+read more about it [here](https://github.com/cevek/ttypescript/blob/master/README.md) 
 
 # Source
-Heavily based on [ts-transformer-keys](https://github.com/kimamula/ts-transformer-keys)
+**Heavily** based on [ts-transformer-keys](https://github.com/kimamula/ts-transformer-keys)

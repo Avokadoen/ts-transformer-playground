@@ -1,7 +1,9 @@
 {
   "name": "ts-fn-parameter-type",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "A transformer to retrieve function parameter types",
+  "main": "index",
+  "types": "index",
   "scripts": {
     "build": "tsc",
     "test:run": "npm run build && cd playground/ && npx webpack && cd ..",
