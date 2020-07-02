@@ -1,7 +1,6 @@
 
-import ts, { CallExpression, isIdentifier, TypeNode, isFunctionTypeNode, isTypeReferenceNode, createLiteral, FlowNode, FlowCall, Expression, isVariableDeclaration } from 'typescript';
+import ts, { CallExpression, isIdentifier, TypeNode, isFunctionTypeNode, isTypeReferenceNode, createLiteral, FlowNode, FlowCall, Expression, isVariableDeclaration, isArrowFunction, NodeArray, ParameterDeclaration, SyntaxKind, isCallExpression, Node, isFunctionDeclaration, isExpressionStatement, TypeChecker, isJSDocSignature } from 'typescript';
 import path from 'path';
-import { type } from 'os';
 
 // SOURCE: https://github.com/kimamula/ts-transformer-keys
 
@@ -26,53 +25,59 @@ function visitNode(node: ts.Node, program: ts.Program): ts.Node | undefined {
         return node;
     }
 
+    let typeArray: string[] = [];
     if (node.typeArguments) {
-        const typeArray = typeArgumentExtractIdentifierTypeString(node.typeArguments[0]);
-        return ts.createArrayLiteral(typeArray.map(paraType => ts.createLiteral(paraType)));
+        typeArray = typeArgumentExtractIdentifierTypeString(node.typeArguments[0]);
     } else if (node.arguments) {
-        argumentExtractIdentifierTypeString(node.arguments[0]);
+        typeArray = argumentExtractIdentifierTypeString(node.arguments[0], typeChecker);
     }
 
-    return ts.createArrayLiteral([]);
-
-    
+    return ts.createArrayLiteral(typeArray.map(paraType => ts.createLiteral(paraType)));
 }
 
-function argumentExtractIdentifierTypeString(node: Expression): string[] {
-    const typeArray: string[] = [];
+function argumentExtractIdentifierTypeString(node: Expression, typeChecker: TypeChecker): string[] {
     if (!isIdentifier(node)) {
-        return typeArray;
+        return [];
     }
-
-    const declareNode = (node as any)?.flowNode?.node; /* ts:ignore-this-line */
-    if (!isVariableDeclaration(declareNode)) {
-        return typeArray;
-    }
-
-    const initializer = declareNode.initializer;
-    if (!initializer) {
-        return typeArray;
-    }
-
-    console.log(initializer);
-    return typeArray;
-}
-
-function typeArgumentExtractIdentifierTypeString(node: TypeNode): string[] {
-    const typeArray: string[] = [];
-    if (!isFunctionTypeNode(node)) {
-        return typeArray;
-    }
-
-    for (const p of node.parameters) {
-        const t = p.type;
-        if (t && isTypeReferenceNode(t)) {
-            if (isIdentifier(t.typeName)) {
-                typeArray.push(t.typeName.escapedText as string)
-            }
+    
+    const declareNode = (node as any)?.flowNode?.node as Node; /* ts:ignore-this-line */
+    if (isVariableDeclaration(declareNode)) {
+        const initializer = declareNode.initializer;
+        if (!initializer) {
+            return [];
+        }
+       
+        if (isArrowFunction(initializer)) {
+            return extractParametersTypeAsString(initializer.parameters);
         }
     }
 
+    const functionDeclaration = typeChecker.getTypeAtLocation(node).symbol.declarations[0];
+    if (isFunctionDeclaration(functionDeclaration)) {
+        return extractParametersTypeAsString(functionDeclaration.parameters);
+    }
+
+    return [];
+}
+
+function typeArgumentExtractIdentifierTypeString(node: TypeNode): string[] {
+    if (!isFunctionTypeNode(node)) {
+        return [];
+    }
+
+    return extractParametersTypeAsString(node.parameters);
+}
+
+function extractParametersTypeAsString(parameters: NodeArray<ParameterDeclaration>): string[] {
+    let typeArray: string[] = [];
+    for (const p of parameters) {
+        const t = p.type;
+        if (t && isTypeReferenceNode(t)) {
+            if (isIdentifier(t.typeName)) {
+                typeArray.push(t.typeName.escapedText as string);
+            }
+        }
+    }
     return typeArray;
 }
 
