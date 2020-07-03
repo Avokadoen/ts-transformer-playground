@@ -27,6 +27,17 @@ console.log(fnParameterTypes(otherSystem));
 console.log(fnParameterTypes<(dt: number, otherC1: Comp1, otherC2: Comp2) => void>(otherSystem));
 ```
 
+# Limitation
+Currently it does not work with generics:
+```typescript
+function otherSystem(dt: number, otherC1: Comp<C1>, otherC2: Comp<C2>) {
+    console.log('coolio2');
+}
+
+// Array [ "Comp", "Comp" ]
+console.log(fnParameterTypes(mySystem)); 
+```
+
 # Use in your project: 
 This is a higly untested and experimental code base, but if you want to try this you can do the following: 
 
