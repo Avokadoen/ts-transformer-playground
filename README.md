@@ -30,6 +30,11 @@ console.log(fnParameterTypes<(dt: number, otherC1: Comp1, otherC2: Comp2) => voi
 # Use in your project: 
 This is a higly untested and experimental code base, but if you want to try this you can do the following: 
 
+run:
+```bash
+npm i -D ts-fn-parameter-type
+```
+
 ### Webpack
 in you webpack.config.js:
 ```js
